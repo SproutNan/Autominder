@@ -7,11 +7,12 @@ import time
 from nonebot.plugin import on_keyword
 from nonebot.adapters.onebot.v11 import Bot, Event
 from nonebot.adapters.onebot.v11.message import Message
+from nonebot.adapters.onebot.v11 import MessageSegment
 from .config import Config
 import pygame
 import os
-import pandas as pd
 import re
+from pathlib import Path
 
 pygame.init()
 
@@ -242,9 +243,9 @@ async def chouka_handle(bot: Bot, event: Event):
     his_time = open("C:/bot_things/carddue").read()
     his = eval(his_time)
 
-    cd = 86400
+    cd = 60
     flag = False #是否允许抽卡
-    if his.get(id_, default=None) is None:
+    if his.get(id_, None) is None:
         flag = True
     elif int(time.time()) - int(his.get(id_)) > cd:
         flag = True
@@ -269,12 +270,12 @@ async def chouka_handle(bot: Bot, event: Event):
 
         # 更新背包
         if choice in back:
-            await chouka.finish(Message(f'{getNameById(id_)}抽到了已有卡牌{getCardValue(choice)}+{choice}。'))
+            await chouka.finish(Message(f'{getNameById(id_)}抽到了已有卡牌{getCardValue(choice)}{choice}。'))
 
         back.append(choice)
         data = open("C:/bot_things/cardbackpack/"+id_, "w+")
         data.write(back.__repr__())
-        await chouka.finish(Message(f'{getNameById(id_)}抽到了新卡{getCardValue(choice)}+{choice}！'))
+        await chouka.finish(Message(f'{getNameById(id_)}抽到了新卡{getCardValue(choice)}{choice}！'))
 
     else:
         await chouka.finish(Message(f'{(int(his.get(id_)) + cd + 1 - int(time.time()))}s后才可再次抽卡！'))
@@ -312,7 +313,7 @@ async def chupai_handle(bot: Bot, event: Event):
             # 记录攻击
             data = open("C:/bot_things/cardeffect").read()
             data = eval(data)
-            data[id_] = str(int(data.get(id_, default="0")) + getCardEffect(cardname))
+            data[id_] = str(int(data.get(id_, "0")) + getCardEffect(cardname))
             data2 = open("C:/bot_things/cardeffect", "w+")
             data2.write(data.__repr__())
 
@@ -345,7 +346,7 @@ async def chupai_handle(bot: Bot, event: Event):
     # 记录攻击
     data = open("C:/bot_things/cardeffect").read()
     data = eval(data)
-    data[atSb] = str(int(data.get(atSb, default="0")) - getCardEffect(cardname))
+    data[atSb] = str(int(data.get(atSb, "0")) - getCardEffect(cardname))
     data2 = open("C:/bot_things/cardeffect", "w+")
     data2.write(data.__repr__())
 
@@ -362,7 +363,11 @@ async def backpack_handle(bot: Bot, event: Event):
     id_ = event.get_user_id()
     data2 = open("C:/bot_things/cardbackpack/" + id_, "a+")
     data2.seek(0)
-    data = eval(data2.read())
+    data3 = data2.read()
+    if len(data3):
+        data = eval(data3)
+    else:
+        data = []
 
     if len(data):
         data.sort()
@@ -380,11 +385,14 @@ async def backpack_handle(bot: Bot, event: Event):
         mess = mess[:len(mess)-1]
 
         # 用pygame生成图片
-        font = pygame.font.Font(os.path.join("C:/Windows/Fonts", "msyh.ttf"), 18)
-        rtext = font.render(text, True, (0, 0, 0), (255, 255, 255))
-        pygame.image.save(rtext, "C:\output.png")
+        font = pygame.font.Font(os.path.join("C:/Windows/Fonts", "simsun.ttc"), 18)
+        rtext = font.render(mess, True, (0, 0, 0), (255, 255, 255))
+        pygame.image.save_extended(rtext, Path(os.path.join(os.path.dirname(__file__), "resource")) / ("output.png"))
 
-        await backpack.finish(Message(f'{getNameById(id_)}的卡包中有：[CQ:image,file="C:\output.png"]\n收集度：({len(mess)}/400)。'))
+
+        msg = MessageSegment.text(f"{getNameById(id_)}的卡包\n收集度：({len(data)}/400)\n") + MessageSegment.image(Path(os.path.join(os.path.dirname(__file__), "resource")) / ("output.png"))
+        
+        await backpack.finish(message=msg)
     else:
         await backpack.finish(Message(f'{getNameById(id_)}的卡包空空如也。'))
     
