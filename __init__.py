@@ -1,4 +1,4 @@
-from nonebot import get_driver
+﻿from nonebot import get_driver
 import random
 import math
 import os
@@ -41,11 +41,11 @@ def jrrp_return(num):
 
 
 def chouka_return(a, ys_list):
-    if a < 3:
+    if a < 10:
         return ys_list[3]
-    elif a < 6:
+    elif a < 25:
         return ys_list[2]
-    elif a < 10:
+    elif a < 40:
         return ys_list[1]
     else:
         return ys_list[0]
@@ -173,21 +173,32 @@ def getNameById(id_):
     path += id_
     return open(path).read()
 
-here = on_keyword(['当前位置'], priority=46)
+here = on_keyword(['当前'], priority=46)
 @here.handle()
 async def here_handle(bot: Bot, event: Event):
     word = str(event.get_message())
-    if word != "当前位置":
+    if word != "当前":
         await here.finish()
 
     path = "C:/bot_things/location/"
     id_ = event.get_user_id()
     yourpath = path + id_
-    data = open(yourpath).read()
+    data = open(yourpath, "a+")
+    data.seek(0)
+    data = data.read()
 
-    mess = "你当前在"
-    mess += data
+    effect = open("C:/bot_things/cardeffect").read()
+    ef = eval(effect)
+    s = ef.get(id_, "0")
 
+    mess = getNameById(id_) +"，你的经验为"+s+"\n"
+    mess += f"等级为{int(s)//100+1}，还有{100-int(s)%100}升级。\n"
+    mess += "你当前在"
+    if len(data):
+        mess += data
+    else:
+        mess += "未知"
+        
     friends = []
     listmap = os.listdir(path)
     for _ in listmap:
@@ -223,11 +234,20 @@ async def lookmap_handle(bot: Bot, event: Event):
     mess = mess[:len(mess)-1]
     await lookmap.finish(Message(f'{mess}'))
 
+card_value_list = ['[N] ', '[R] ', '[SR] ', "[SSR] "]
+up = "过生日的杜宝"
+
 def getCardEffect(s):
-    return hash(s) % 5 + 10 * (hash(s) % 100)
+    if s == up:
+        return len(s) % 3 + 50
+    else:
+        return len(s) % 3 + 1 + 10 * card_value_list.index(chouka_return((len(s) * 77777) % 100, card_value_list))
 
 def getCardValue(s):
-    return chouka_return(hash(s) % 100, ['[N] ', '[R] ', '[SR] ', "[SSR] "])
+    if s == up:
+        return "[SP] "
+    else:
+        return chouka_return((len(s) * 77777) % 100, ['[N] ', '[R] ', '[SR] ', "[SSR] "])
 
 chouka = on_keyword(['抽卡'], priority=48)
 @chouka.handle()
@@ -237,11 +257,14 @@ async def chouka_handle(bot: Bot, event: Event):
         await chouka.finish()
 
     id_ = event.get_user_id()
-    name = ["群主", "66", "蟹老板", "sjj", "顾炎武", "大姐", "美丽学妹珍珠棉", "陈日天", "杜宝", "酚酞女", "原批", "樱桃", "柳杭羽", "程心", "花如雪", "尧尧", "方火华", "lkz", "王梓媛", "gjj"]
-    prefix = ["攀岩的", "喝奶茶的", "拍视频的", "打羽毛球的", "踢足球的", "想发paper的", "想染头发的", "好厉害的", "无敌的", "水群的", "flxg的", "吃夜宵的", "做推送的", "菜的", "在报销的", "谈恋爱的", "直播的", "摸鱼的", "躺平的", "内卷的"]
+    name = ["健康打卡", "第二课堂", "林奕含学姐", "66", "蟹老板", "sjj", "顾炎武", "大姐", "美丽学妹珍珠棉", "陈日天", "杜宝", "酚酞女", "原批", "樱桃", "柳杭羽", "史莱姆", "花如雪", "尧尧", "方火华", "lkz", "王梓媛", "gjj"]
+    prefix = ["吃泡面的", "晦气的", "有问题的", "攀岩的", "喝奶茶的", "拍视频的", "打羽毛球的", "踢足球的", "想发paper的", "想染头发的", "好厉害的", "无敌的", "水群的", "flxg的", "吃夜宵的", "做推送的", "菜的", "在报销的", "谈恋爱的", "直播的", "摸鱼的", "躺平的", "内卷的"]
     
     his_time = open("C:/bot_things/carddue").read()
-    his = eval(his_time)
+    if len(his_time):
+        his = eval(his_time)
+    else:
+        his = {}
 
     cd = 60
     flag = False #是否允许抽卡
@@ -257,7 +280,73 @@ async def chouka_handle(bot: Bot, event: Event):
         save_time.write(his.__repr__())
 
         # 抽一张卡
-        choice = random.choice(prefix)+random.choice(name)
+        if random.randint(0, 8) == 9:
+            choice = up
+        else:
+            if id_ == "1025890895":
+                choice = random.choice(prefix)+random.choice(name)
+            else:
+                choice = random.choice(prefix)+random.choice(name)
+
+        # 打开背包
+        data = open("C:/bot_things/cardbackpack/"+id_, "a+")
+        data.seek(0)
+        data2 = data.read()
+        if len(data2):
+            back = eval(data2)
+        else:
+            back = []
+
+        # 更新背包
+        if choice in back:
+            await chouka.finish(Message(f'{getNameById(id_)}抽到了已有卡牌{getCardValue(choice)}{choice}。'))
+
+        back.append(choice)
+        data = open("C:/bot_things/cardbackpack/"+id_, "w+")
+        data.write(back.__repr__())
+        await chouka.finish(Message(f'{getNameById(id_)}抽到了新卡{getCardValue(choice)}{choice}！'))
+
+    else:
+        await chouka.finish(Message(f'{(int(his.get(id_)) + cd + 1 - int(time.time()))}s后才可再次抽卡！'))
+
+shilian = on_keyword(['十连'], priority=48)
+@shilian.handle()
+async def shilian_handle(bot: Bot, event: Event):
+    word = str(event.get_message())
+    if word != "十连":
+        await shilian.finish()
+
+    id_ = event.get_user_id()
+    name = ["健康打卡", "第二课堂", "林奕含学姐", "66", "蟹老板", "sjj", "顾炎武", "大姐", "美丽学妹珍珠棉", "陈日天", "杜宝", "酚酞女", "原批", "樱桃", "柳杭羽", "史莱姆", "花如雪", "尧尧", "方火华", "lkz", "王梓媛", "gjj"]
+    prefix = ["吃泡面的", "晦气的", "有问题的", "攀岩的", "喝奶茶的", "拍视频的", "打羽毛球的", "踢足球的", "想发paper的", "想染头发的", "好厉害的", "无敌的", "水群的", "flxg的", "吃夜宵的", "做推送的", "菜的", "在报销的", "谈恋爱的", "直播的", "摸鱼的", "躺平的", "内卷的"]
+    
+    his_time = open("C:/bot_things/carddue").read()
+    if len(his_time):
+        his = eval(his_time)
+    else:
+        his = {}
+
+    cd = 60
+    flag = False #是否允许抽卡
+    if his.get(id_, None) is None:
+        flag = True
+    elif int(time.time()) - int(his.get(id_)) > cd:
+        flag = True
+
+    if flag:
+        # 更新时间
+        his[id_] = str(int(time.time()))
+        save_time = open("C:/bot_things/carddue", "w+")
+        save_time.write(his.__repr__())
+
+        # 抽一张卡
+        if random.randint(0, 8) == 9:
+            choice = up
+        else:
+            if id_ == "1025890895":
+                choice = random.choice(prefix)+random.choice(name)
+            else:
+                choice = random.choice(prefix)+random.choice(name)
 
         # 打开背包
         data = open("C:/bot_things/cardbackpack/"+id_, "a+")
@@ -285,11 +374,14 @@ chupai = on_keyword(['出牌'], priority=48)
 async def chupai_handle(bot: Bot, event: Event):
     id_ = event.get_user_id()
     word = str(event.raw_message)
-    matchobj = re.match("出牌 (.*) (.*)", word, re.M|re.I)
+    matchobj = re.match(r"出牌 (.*) (.*?)", word, re.M|re.I)
+    print("--------------------------------------------")
+    print(matchobj)
     if matchobj is None: # 回血
         matchobj = re.match("出牌 (.*)", word, re.M | re.I)
         if matchobj is None:
             await chupai.finish()
+        else:
             cardNum = matchobj.group(1)
             if cardNum.isdecimal() is False:
                 await chupai.finish()
@@ -305,8 +397,8 @@ async def chupai_handle(bot: Bot, event: Event):
             if len(back) < int(cardNum):
                 await chupai.finish(Message(f'你没有第{cardNum}张牌！'))
             # 删除卡片
-            cardname = back[cardNum - 1]
-            back.remove(back[cardNum - 1])
+            cardname = back[int(cardNum) - 1]
+            back.remove(back[int(cardNum) - 1])
             data = open("C:/bot_things/cardbackpack/" + id_, "w+")
             data.write(back.__repr__())
 
@@ -318,12 +410,15 @@ async def chupai_handle(bot: Bot, event: Event):
             data2.write(data.__repr__())
 
             # 返回值
-            await chupai.finish(Message(f'{getNameById(id_)}恢复了{getCardEffect(cardname)}点血量！'))
+            await chupai.finish(Message(f'{getNameById(id_)}获得了{getCardEffect(cardname)}点经验！'))
 
     cardNum = matchobj.group(1)
     atSb = matchobj.group(2)
-    if cardNum.isdecimal() is False or re.match("CQ:at,qq=(.*)", atSb, re.M|re.I) is None:
+    print(atSb)
+    if cardNum.isdecimal() is False or atSb.count("qq=")==0:
         await chupai.finish()
+
+    atSb = atSb[atSb.find("=")+1:atSb:find("]")]
     # 获得命令
 
     # 打开背包
@@ -338,8 +433,8 @@ async def chupai_handle(bot: Bot, event: Event):
     if len(back) < int(cardNum):
         await chupai.finish(Message(f'你没有第{cardNum}张牌！'))
     # 删除卡片
-    cardname = back[cardNum-1]
-    back.remove(back[cardNum-1])
+    cardname = back[int(cardNum)-1]
+    back.remove(back[int(cardNum)-1])
     data = open("C:/bot_things/cardbackpack/" + id_, "w+")
     data.write(back.__repr__())
 
@@ -351,7 +446,7 @@ async def chupai_handle(bot: Bot, event: Event):
     data2.write(data.__repr__())
 
     # 返回值
-    await chupai.finish(Message(f'{getNameById(id_)}对{getNameById(atSb)}造成了{getCardEffect(cardname)}点伤害！'))
+    await chupai.finish(Message(f'{getNameById(id_)}对{getNameById(atSb)}造成了{getCardEffect(cardname)}点经验伤害！'))
         
 backpack = on_keyword(['卡包'], priority=48)
 @backpack.handle()
@@ -370,7 +465,6 @@ async def backpack_handle(bot: Bot, event: Event):
         data = []
 
     if len(data):
-        data.sort()
         mess = ""
         for _ in data:
             mess += "["
@@ -389,8 +483,8 @@ async def backpack_handle(bot: Bot, event: Event):
         rtext = font.render(mess, True, (0, 0, 0), (255, 255, 255))
         pygame.image.save_extended(rtext, Path(os.path.join(os.path.dirname(__file__), "resource")) / ("output.png"))
 
-
-        msg = MessageSegment.text(f"{getNameById(id_)}的卡包\n收集度：({len(data)}/400)\n") + MessageSegment.image(Path(os.path.join(os.path.dirname(__file__), "resource")) / ("output.png"))
+        msg = MessageSegment.text(f"{getNameById(id_)}的卡包\n{mess}\n")
+        #msg = MessageSegment.text(f"{getNameById(id_)}的卡包\n收集度：({len(data)}/400)\n") + MessageSegment.image(Path(os.path.join(os.path.dirname(__file__), "resource")) / ("output.png"))
         
         await backpack.finish(message=msg)
     else:
@@ -404,7 +498,7 @@ async def helpp_handle(bot: Bot, event: Event):
         await helpp.finish()
 
     mess = "【hrxbot help】\n1.[ycgpa] 预测下一门gpa\n2.[率：xxx] 测试今天xxx率\n3.[选：xxx zzz ...] 随机选一个\n4.已删除\n5.[sudo 选：...] 选100次\n6.[起名：ggg] 给自己起名字\n"
-    mess += "7.[battle @sb] 比赛打杜宝\n8.[当前位置] 同一位置的人\n9.[世界] 查看大家都在哪\nA.[移动到：sp] 移动到某地\nB.[smsyyy] 约约约系统帮助\nC.[抽卡/卡包] 卡牌系统"
+    mess += "7.[battle @sb] 比赛打杜宝\n8.[当前] 查看位置和等级\n9.[世界] 查看大家都在哪\nA.[移动到：sp] 移动到某地\nB.[smsyyy] 约约约系统帮助\nC.[抽卡/卡包] 卡牌系统\nD.[出牌] 按卡包序号出牌"
     await helpp.finish(Message(f'{mess}'))
 
 yyy = on_keyword(['yyy'], priority=46)
