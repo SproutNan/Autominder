@@ -188,7 +188,10 @@ async def here_handle(bot: Bot, event: Event):
     data = data.read()
 
     effect = open("C:/bot_things/cardeffect").read()
-    ef = eval(effect)
+    try:
+        ef = eval(effect)
+    except:
+        ef = {}
     s = ef.get(id_, "0")
 
     mess = getNameById(id_) +"，你的经验为"+s+"\n"
@@ -262,7 +265,10 @@ async def chouka_handle(bot: Bot, event: Event):
     
     his_time = open("C:/bot_things/carddue").read()
     if len(his_time):
-        his = eval(his_time)
+        try:
+            his = eval(his_time)
+        except:
+            his = {}
     else:
         his = {}
 
@@ -326,12 +332,14 @@ async def shilian_handle(bot: Bot, event: Event):
     else:
         his = {}
 
-    cd = 60
+    cd = 600
     flag = False #是否允许抽卡
     if his.get(id_, None) is None:
         flag = True
     elif int(time.time()) - int(his.get(id_)) > cd:
         flag = True
+
+    mess = f"{getNameById(id_)}十连抽到："
 
     if flag:
         # 更新时间
@@ -339,35 +347,48 @@ async def shilian_handle(bot: Bot, event: Event):
         save_time = open("C:/bot_things/carddue", "w+")
         save_time.write(his.__repr__())
 
-        # 抽一张卡
-        if random.randint(0, 8) == 9:
-            choice = up
-        else:
-            if id_ == "1025890895":
-                choice = random.choice(prefix)+random.choice(name)
-            else:
-                choice = random.choice(prefix)+random.choice(name)
-
-        # 打开背包
+        # 打开背
         data = open("C:/bot_things/cardbackpack/"+id_, "a+")
         data.seek(0)
         data2 = data.read()
         if len(data2):
-            back = eval(data2)
+            try:
+                back = eval(data2)
+            except:
+                back = []
         else:
             back = []
 
-        # 更新背包
-        if choice in back:
-            await chouka.finish(Message(f'{getNameById(id_)}抽到了已有卡牌{getCardValue(choice)}{choice}。'))
+        for _ in range(10):
 
-        back.append(choice)
+            # 抽一张卡
+            if random.randint(0, 8) == 9:
+                choice = up
+            else:
+                if id_ == "1025890895":
+                    choice = random.choice(prefix)+random.choice(name)
+                else:
+                    choice = random.choice(prefix)+random.choice(name)
+
+
+
+            # 更新背包
+            if choice in back:
+                if len(mess):
+                    mess += "\n"
+                mess += f'已有卡牌{getCardValue(choice)}{choice}。'
+            else:
+                back.append(choice)
+                if len(mess):
+                    mess += "\n"
+                mess += f'新卡{getCardValue(choice)}{choice}！'
+                
         data = open("C:/bot_things/cardbackpack/"+id_, "w+")
         data.write(back.__repr__())
-        await chouka.finish(Message(f'{getNameById(id_)}抽到了新卡{getCardValue(choice)}{choice}！'))
+        await shilian.finish(Message(f'{mess}'))
 
     else:
-        await chouka.finish(Message(f'{(int(his.get(id_)) + cd + 1 - int(time.time()))}s后才可再次抽卡！'))
+        await shilian.finish(Message(f'{(int(his.get(id_)) + cd + 1 - int(time.time()))}s后才可再次抽卡！'))
 
 chupai = on_keyword(['出牌'], priority=48)
 @chupai.handle()
@@ -390,7 +411,10 @@ async def chupai_handle(bot: Bot, event: Event):
             data.seek(0)
             data2 = data.read()
             if len(data2):
-                back = eval(data2)
+                try:
+                    back = eval(data2)
+                except:
+                    back = []
             else:
                 back = []
 
@@ -404,7 +428,10 @@ async def chupai_handle(bot: Bot, event: Event):
 
             # 记录攻击
             data = open("C:/bot_things/cardeffect").read()
-            data = eval(data)
+            try:
+                data = eval(data)
+            except:
+                data = {}
             data[id_] = str(int(data.get(id_, "0")) + getCardEffect(cardname))
             data2 = open("C:/bot_things/cardeffect", "w+")
             data2.write(data.__repr__())
@@ -460,13 +487,19 @@ async def backpack_handle(bot: Bot, event: Event):
     data2.seek(0)
     data3 = data2.read()
     if len(data3):
-        data = eval(data3)
+        try:
+            data = eval(data3)
+        except:
+            data = []
     else:
         data = []
 
     if len(data):
         mess = ""
         for _ in data:
+            if data.index(_) > 19:
+                mess += "最多显示20张牌呢，可以试着出掉前面的卡牌。\n"
+                break
             mess += "["
             mess += str(data.index(_)+1)
             mess += "]"
