@@ -1,0 +1,48 @@
+battle = on_keyword(['battle','battle with'],priority=47)
+@battle.handle()
+async def battle_handle(bot: Bot, event: Event):
+    #if str(event.json()).count("662368872") == 0:
+        #await battle.finish()
+    msg = str(event.get_message())
+    sb = str(event.raw_message)
+    start = sb.find("qq=")
+    if start == -1:
+        await battle.finish()
+        
+    end = sb.find("]")
+    player = sb[start+3:end]
+
+    if (player == '2630128240' or event.get_user_id() == 2630128240 or player == str(event.get_user_id())):
+        await battle.finish()
+
+    rnd1 = random.Random().randint(12, 99)
+    rnd2 = random.Random().randint(12, 99)
+
+    
+    player1 = player
+    player2 = event.get_user_id()
+    win = ""
+    lose = ""
+    if rnd1 > rnd2:
+        win = player1
+        lose = player2
+    elif rnd1 <= rnd2:
+        win = player2
+        lose = player1
+    await battle.finish(Message(f'打杜宝挑战！对手打了{rnd1}下，[CQ:at,qq={player2}]打了{rnd2}下，[CQ:at,qq={win}]获胜！'))
+
+choice = on_keyword(['sudo 选：'], priority=46)
+@choice.handle()
+async def choice_handle(bot: Bot, event: Event):
+    word = str(event.get_message())
+    slice_ = list(set(word[word.find('sudo 选：')+len('sudo 选：'):].split()))
+    ans = random.choice(slice_)
+    cnt = 1
+    for _ in range(99):
+        if random.choice(slice_) == ans:
+            cnt+=1
+            
+    if len(slice_) > 1 and len(slice_) < 11:
+        await choice.finish(Message(f'回应是：{random.choice(slice_)}，{cnt}/100'))
+    else:
+        await choice.finish()
